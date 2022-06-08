@@ -11,7 +11,7 @@ setup(
     version="0.01",
     packages=["meshflip",],
     license="MIT",
-    description="A toolbox for mesh reorientation.",
+    description="Wanna canonically orient those pesky 3d models? Use this tool to do that!",
     url="https://github.com/nikwl/meshflip",
     install_requires=requirements,
     long_description=long_description,

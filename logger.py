@@ -33,8 +33,10 @@ def configure_logging(args):
         logger.setLevel(logging.WARNING)
     else:
         logger.setLevel(logging.INFO)
-        
-    logger.addHandler(logging.StreamHandler())
-    if args.logfile is not None:
-        file_logger_handler = logging.FileHandler(args.logfile)
-        logger.addHandler(file_logger_handler)
+    logger_handler = logging.StreamHandler()
+
+    # Dont add two handlers
+    logger.addHandler(logger_handler)
+    # if args.logfile is not None:
+    #     file_logger_handler = logging.FileHandler(args.logfile)
+    #     logger.addHandler(file_logger_handler)

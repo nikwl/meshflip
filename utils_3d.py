@@ -5,6 +5,7 @@ import vtk
 import vedo
 import trimesh
 import numpy as np
+import open3d as o3d
 import pyransac3d as pyrsc
 from sklearn.decomposition import PCA
 
@@ -102,7 +103,7 @@ def trimesh_center(mesh):
 def trimesh_transform_matrix(mesh, mat):
     """ Apply a transformation matrix to a trimesh mesh or pointcloud """
     mesh = mesh.copy()
-    mesh.vertices = points_transform_matrix(mesh.vertices, mat)
+    mesh.apply_transform(mat)
     return mesh
 
 
@@ -130,6 +131,27 @@ def trimesh_normalize(mesh):
     # Normalize scale of the object
     mesh.vertices = mesh.vertices * (1.0 / np.max(size))
     return mesh
+
+
+def trimesh_normalize_matrix(mesh):
+    """Normalize a mesh so that it occupies a unit cube """
+
+    # Get the overall size of the object
+    mesh_min, mesh_max = np.min(mesh.vertices, axis=0), np.max(mesh.vertices, axis=0)
+    size = mesh_max - mesh_min
+
+    # Center the object
+    mesh.vertices = ((size / 2.0) + mesh_min)
+
+    trans = trimesh.transformations.translation_matrix(
+        -((size / 2.0) + mesh_min)
+    )
+
+    # Normalize scale of the object
+    scale = trimesh.transformations.scale_matrix(
+        (1.0 / np.max(size))
+    )
+    return scale @ trans
 
 
 def trimesh_settle(mesh, search_height=None, component_points=10, ransac_threshold=0.01, return_matrix=False):
@@ -287,6 +309,19 @@ def points_maximal_orient(points):
         np.array([0, 0, 0, 1])
     )).T
 
+
+def points_icp(moving, fixed, threshold=75, scale=False):
+    """ Align two point sets using icp """
+    pc_moving = o3d.geometry.PointCloud()
+    pc_moving.points = o3d.utility.Vector3dVector(moving)
+    pc_fixed = o3d.geometry.PointCloud()
+    pc_fixed.points = o3d.utility.Vector3dVector(fixed)
+    return o3d.pipelines.registration.registration_icp(
+        pc_moving, 
+        pc_fixed,
+        threshold,
+        estimation_method=o3d.pipelines.registration.TransformationEstimationPointToPoint(with_scaling=scale),
+    ).transformation
 
 # === transformation methods ===
 

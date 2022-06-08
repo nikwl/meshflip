@@ -1,4 +1,4 @@
-trimesh==3.12.5
-vedo==2022.2.3
-pyransac3d==0.6.0
-open3d==0.11.1
+trimesh>=3.12.5
+vedo>=2022.2.3
+pyransac3d>=0.6.0
+open3d>=0.11.1

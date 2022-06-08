@@ -1,14 +1,15 @@
 import argparse
 import logging
+import json
 
-import vtk
-import vedo
 import trimesh
+import vedo
+import vtk
 import numpy as np
 from vedo import Plotter
 
-import logger
-import utils_3d
+import meshflip.logger as logger
+import meshflip.utils_3d as utils_3d
 
 
 def get_mat(transform):
@@ -18,78 +19,97 @@ def get_mat(transform):
     return np.array([transform.GetMatrix().GetElement(i, j) for i in range(4) for j in range(4)]).reshape(4, 4)
 
 
-def orienter(input_mesh, output, savepath):
+def register(moving, fixed=None, savepath=None, output=None, scale=False):
 
     # Instantiate the plotter
-    plt = Plotter(
-        N=4,
-        sharecam=False,
-    )
+    plt = Plotter(axes=0)
     plt += """
-    Instructions: Adjust the object to be in its canonical orientation.
-    Click and drag to move the the object. Use the middle mouse button to translate the object.
-    Press "d" to drop the object.
+    Instructions: Register the red object to the blue object.
+    Click and drag to move the camera or the mesh. Use the middle mouse button to translate the mesh.
+    Press "a" to toggle between moving the object or moving the camera.
+    press "r" to register the objects using ICP.
     Press "s" to save the transformation to disk.
-    Press "n" to normalize the object.
-    Press "q" to quit.
+    Press "q" to exit.
     """
 
-    # Load
+    # Load the fixed and moving pointlclouds
+    input_mesh = utils_3d.force_trimesh(
+        moving
+    )
     mesh_moving = utils_3d.trimesh2vedo(
-        utils_3d.force_trimesh(
-            input_mesh
-        )
+        input_mesh, 
+        c="r",
     )
     if len(mesh_moving.faces()) == 0:
-        mesh_moving = vedo.pointcloud.Points(mesh_moving.points())
+        mesh_moving = vedo.pointcloud.Points(mesh_moving.points(), c="r")
+    plt.add(mesh_moving)
+
+    if fixed is None:
+        mesh_fixed = vedo.shapes.Plane(
+            pos=(0, 0, 0), 
+            normal=(0, 0, 1), 
+            sx=5000, 
+            sy=None, 
+            c="b", 
+            alpha=0.2
+        )
+    else:
+        mesh_fixed = utils_3d.trimesh2vedo(
+            utils_3d.force_trimesh(
+                fixed
+            ), 
+            c="b",
+        )
+        if len(mesh_fixed.faces()) == 0:
+            mesh_fixed = vedo.pointcloud.Points(mesh_fixed.points(), c="b")
+    plt.add(mesh_fixed)
 
     # Set a starting identity transform
     transform = vtk.vtkTransform()
     transform.SetMatrix(np.eye(4).flatten().flatten())
     mesh_moving.SetUserTransform(transform)
 
+    mesh_moving._scale_matrix = np.eye(4)
+
+    bbx_moving = utils_3d.trimesh_bbx(utils_3d.vedo2trimesh(mesh_moving))
+    bbx_fixed = utils_3d.trimesh_bbx(utils_3d.vedo2trimesh(mesh_fixed))
+    scale = (bbx_moving[0][0] - bbx_moving[1][0]) / (bbx_fixed[0][0] - bbx_fixed[1][0])
+
     def update_transform(mat):
         """ Updates the user transform of the moving mesh """
         mat = mat @ get_mat(mesh_moving.GetUserTransform())
-        # assert np.isclose(np.linalg.det(mat[:3, :3]), 1, atol=1e-3)
+        # assert np.isclose(np.linalg.det(mat[:3, :3]), 1, atol=1e-4)
         assert (mat[3, :] == np.array([0, 0, 0, 1])).all()
         transform = vtk.vtkTransform()
         transform.SetMatrix(mat.flatten())
         mesh_moving.SetUserTransform(transform)
 
-    # Center the moving mesh
-    update_transform(
-        utils_3d.trimesh_normalize_matrix(utils_3d.vedo2trimesh(mesh_moving))
-    )
+    update_transform(np.eye(4))
 
-    # Orient the moving mesh by its maximal dimension using PCA
-    try:
-        points = mesh_moving.to_trimesh().sample(100000)
-    except (IndexError, AttributeError):
-        points = mesh_moving.points()
-    update_transform(
-        utils_3d.points_maximal_orient(points)
-    )
-
-    # Save this matrix for the reset button
-    oriented_matrix = get_mat(mesh_moving.GetUserTransform())
+    def scale(widget, event):
+        scale = widget.GetRepresentation().GetValue()
+        mesh_moving._scale_matrix = trimesh.transformations.scale_matrix(scale, [0, 0, 0])
+        update_transform(np.eye(4))
 
     def keypress_callback(evt):
         """
-        Keypress callback
+        Keypress callback, handle icp and applying optimal transform
         """
         if evt["keyPressed"] == "r":
+            logging.debug("Running ICP...")
+
             transform = vtk.vtkTransform()
-            transform.SetMatrix(oriented_matrix.flatten())
-            mesh_moving.SetUserTransform(transform)
-            plt.window.Render()
+            transform.SetMatrix(np.eye(4).flatten())
+            mesh_fixed.SetUserTransform(transform)
 
-        elif evt["keyPressed"] == "n":
-            logging.info("Normalizing ...")
+            # Get ICP matrix
             update_transform(
-                utils_3d.trimesh_normalize_matrix(utils_3d.vedo2trimesh(mesh_moving))
+                utils_3d.points_icp(
+                    mesh_moving.points(), 
+                    mesh_fixed.points(),
+                    scale=scale,
+                )
             )
-
         elif evt["keyPressed"] == "s":
             if savepath is not None:
                 matrix = get_mat(mesh_moving.GetUserTransform())
@@ -105,45 +125,11 @@ def orienter(input_mesh, output, savepath):
                     get_mat(mesh_moving.GetUserTransform())
                 ).export(output)
                 logging.info("Model saved")
-        
-        elif evt["keyPressed"] == "d":
-            _, mat = utils_3d.trimesh_settle(
-                utils_3d.vedo2trimesh(mesh_moving),
-                ransac_threshold=0.01,
-                return_matrix=True,
-            )
-            update_transform(mat)
-            plt.window.Render()
-
+    
     plt.addCallback("keyPressed", keypress_callback)
 
-    def udpate_camera(camera, pos, focal, up):
-        camera.SetPosition(pos)
-        camera.SetFocalPoint(focal)
-        camera.SetViewUp(up)
-
-    scale = 500
-
-    # Head on
-    plt.parallelProjection(at=0)
-    udpate_camera(camera=plt.renderers[0].GetActiveCamera(), pos=(0,-scale,0), focal=(0,0,0), up=(0,0,1))
-    plt.show(mesh_moving, title="Front view", at=0, mode=1, axes=1)
-    
-    # Left view
-    plt.parallelProjection(at=1)
-    udpate_camera(camera=plt.renderers[1].GetActiveCamera(), pos=(scale,0,0), focal=(0,0,0), up=(0,0,1))
-    plt.show(mesh_moving, at=1, mode=1, axes=1)
-    
-    # Down view
-    plt.parallelProjection(at=2)
-    udpate_camera(camera=plt.renderers[2].GetActiveCamera(), pos=(0,0,scale), focal=(0,0,0), up=(0,1,0))
-    plt.show(mesh_moving, at=2, mode=1, axes=1)
-    
-    # Perspective view
-    udpate_camera(camera=plt.renderers[3].GetActiveCamera(), pos=(scale,-scale,scale), focal=(0,0,0), up=(-1,1,1))
-    plt.show(mesh_moving, at=3, mode=1, axes=1)
-
-    plt.show(interactive=True).close()
+    plt.show()
+    plt.closeWindow()
 
     if output is not None:
         if savepath is not None:
@@ -160,7 +146,7 @@ def orienter(input_mesh, output, savepath):
                 get_mat(mesh_moving.GetUserTransform())
             ).export(output)
             logging.info("Model saved")
-    
+
     return utils_3d.trimesh_transform_matrix(
         input_mesh, 
         get_mat(mesh_moving.GetUserTransform())
@@ -172,27 +158,40 @@ if __name__ == "__main__":
         description=""
     )
     parser.add_argument(
-        "mesh",
-        help="3D object to orient.",
+        "moving",
+        help="Pointcloud that will be aligned.",
     )
     parser.add_argument(
-        "--output",
-        default=None,
-        help="Path to save the transformed model at.",
+        "fixed",
+        help="Fixed reference pointcloud.",
     )
     parser.add_argument(
         "--savepath",
         default=None,
         help="Path to save the orientation data at. Must be a .json file.",
     )
+    parser.add_argument(
+        "--scale",
+        default=False,
+        action="store_true",
+        help="Is icp allowed to use scaling?",
+    )
+    parser.add_argument(
+        "--output",
+        default=None,
+        help="Path to save the transformed model at.",
+    )
     logger.add_logger_args(parser)
     args = parser.parse_args()
     logger.configure_logging(args)
 
-    logging.debug("Loading mesh from: {}".format(args.mesh))
     input_mesh = trimesh.load(args.mesh)
-    orienter(
+    if args.fixed is not None:
+        args.fixed = trimesh.load(args.fixed)
+    register(
         input_mesh, 
-        args.output, 
+        args.fixed, 
         args.savepath,
+        args.output,
+        args.scale,
     )

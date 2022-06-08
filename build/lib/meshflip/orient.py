@@ -7,8 +7,8 @@ import trimesh
 import numpy as np
 from vedo import Plotter
 
-import mesflip.logger as logger
-import mesflip.utils_3d as utils_3d
+import meshflip.logger as logger
+import meshflip.utils_3d as utils_3d
 
 
 def get_mat(transform):

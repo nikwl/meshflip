@@ -18,7 +18,11 @@ def get_mat(transform):
     return np.array([transform.GetMatrix().GetElement(i, j) for i in range(4) for j in range(4)]).reshape(4, 4)
 
 
-def orienter(input_mesh, output, savepath):
+def orienter(
+    input_mesh, 
+    output, 
+    tf
+):
 
     # Instantiate the plotter
     plt = Plotter(
@@ -91,12 +95,12 @@ def orienter(input_mesh, output, savepath):
             )
 
         elif evt["keyPressed"] == "s":
-            if savepath is not None:
+            if tf is not None:
                 matrix = get_mat(mesh_moving.GetUserTransform())
                 logging.debug("The optimal transformation matrix is:")
                 logging.debug(matrix)
-                logging.debug("Saving transform to: {}".format(savepath))
-                utils_3d.save_transform(savepath, matrix)
+                logging.debug("Saving transform to: {}".format(tf))
+                utils_3d.save_transform(tf, matrix)
                 logging.info("Transform saved")
             if output is not None:
                 logging.debug("Saving mesh to: {}".format(output))
@@ -146,12 +150,12 @@ def orienter(input_mesh, output, savepath):
     plt.show(interactive=True).close()
 
     if output is not None:
-        if savepath is not None:
+        if tf is not None:
             matrix = get_mat(mesh_moving.GetUserTransform())
             logging.debug("The optimal transformation matrix is:")
             logging.debug(matrix)
-            logging.debug("Saving transform to: {}".format(savepath))
-            utils_3d.save_transform(savepath, matrix)
+            logging.debug("Saving transform to: {}".format(tf))
+            utils_3d.save_transform(tf, matrix)
             logging.info("Transform saved")
         if output is not None:
             logging.debug("Saving mesh to: {}".format(output))
@@ -172,16 +176,15 @@ if __name__ == "__main__":
         description=""
     )
     parser.add_argument(
-        "mesh",
-        help="3D object to orient.",
+        "input",
+        help="Mesh to orient.",
     )
     parser.add_argument(
-        "--output",
-        default=None,
-        help="Path to save the transformed model at.",
+        "output",
+        help="Path to save the resulting oriented model at.",
     )
     parser.add_argument(
-        "--savepath",
+        "--tf",
         default=None,
         help="Path to save the orientation data at. Must be a .json file.",
     )
@@ -189,10 +192,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     logger.configure_logging(args)
 
-    logging.debug("Loading mesh from: {}".format(args.mesh))
-    input_mesh = trimesh.load(args.mesh)
+    logging.debug("Loading mesh from: {}".format(args.input))
+    input_mesh = trimesh.load(args.input)
     orienter(
         input_mesh, 
         args.output, 
-        args.savepath,
+        args.tf,
     )

@@ -19,7 +19,14 @@ def get_mat(transform):
     return np.array([transform.GetMatrix().GetElement(i, j) for i in range(4) for j in range(4)]).reshape(4, 4)
 
 
-def register(moving, fixed=None, savepath=None, output=None, scale=False):
+def register(
+    moving, 
+    fixed=None, 
+    tf=None, 
+    output=None, 
+    icp_threshold=75, 
+    icp_scale=False
+):
 
     # Instantiate the plotter
     plt = Plotter(axes=0)
@@ -42,7 +49,7 @@ def register(moving, fixed=None, savepath=None, output=None, scale=False):
     )
     if len(mesh_moving.faces()) == 0:
         mesh_moving = vedo.pointcloud.Points(mesh_moving.points(), c="r")
-    plt.add(mesh_moving)
+    plt.show(mesh_moving, interactive=False)
 
     if fixed is None:
         mesh_fixed = vedo.shapes.Plane(
@@ -62,7 +69,7 @@ def register(moving, fixed=None, savepath=None, output=None, scale=False):
         )
         if len(mesh_fixed.faces()) == 0:
             mesh_fixed = vedo.pointcloud.Points(mesh_fixed.points(), c="b")
-    plt.add(mesh_fixed)
+    plt.show(mesh_fixed, interactive=False)
 
     # Set a starting identity transform
     transform = vtk.vtkTransform()
@@ -107,16 +114,17 @@ def register(moving, fixed=None, savepath=None, output=None, scale=False):
                 utils_3d.points_icp(
                     mesh_moving.points(), 
                     mesh_fixed.points(),
-                    scale=scale,
+                    threshold=icp_threshold,
+                    scale=icp_scale,
                 )
             )
         elif evt["keyPressed"] == "s":
-            if savepath is not None:
+            if tf is not None:
                 matrix = get_mat(mesh_moving.GetUserTransform())
                 logging.debug("The optimal transformation matrix is:")
                 logging.debug(matrix)
-                logging.debug("Saving transform to: {}".format(savepath))
-                utils_3d.save_transform(savepath, matrix)
+                logging.debug("Saving transform to: {}".format(tf))
+                utils_3d.save_transform(tf, matrix)
                 logging.info("Transform saved")
             if output is not None:
                 logging.debug("Saving mesh to: {}".format(output))
@@ -128,16 +136,16 @@ def register(moving, fixed=None, savepath=None, output=None, scale=False):
     
     plt.addCallback("keyPressed", keypress_callback)
 
-    plt.show()
+    plt.show(interactive=True)
     plt.closeWindow()
 
     if output is not None:
-        if savepath is not None:
+        if tf is not None:
             matrix = get_mat(mesh_moving.GetUserTransform())
             logging.debug("The optimal transformation matrix is:")
             logging.debug(matrix)
-            logging.debug("Saving transform to: {}".format(savepath))
-            utils_3d.save_transform(savepath, matrix)
+            logging.debug("Saving transform to: {}".format(tf))
+            utils_3d.save_transform(tf, matrix)
             logging.info("Transform saved")
         if output is not None:
             logging.debug("Saving mesh to: {}".format(output))
@@ -158,40 +166,45 @@ if __name__ == "__main__":
         description=""
     )
     parser.add_argument(
-        "moving",
-        help="Pointcloud that will be aligned.",
-    )
-    parser.add_argument(
         "fixed",
-        help="Fixed reference pointcloud.",
+        help="Fixed reference mesh.",
     )
     parser.add_argument(
-        "--savepath",
+        "moving",
+        help="Moving mesh, will be aligned to fixed mesh.",
+    )
+    parser.add_argument(
+        "output",
+        help="Path to save the resulting aligned mesh to.",
+    )
+    parser.add_argument(
+        "--tf",
         default=None,
         help="Path to save the orientation data at. Must be a .json file.",
     )
     parser.add_argument(
-        "--scale",
+        "--icp_scale",
         default=False,
         action="store_true",
-        help="Is icp allowed to use scaling?",
+        help="If ICP is allowed to scale.",
     )
     parser.add_argument(
-        "--output",
-        default=None,
-        help="Path to save the transformed model at.",
+        "--icp_threshold",
+        default=75,
+        help="ICP threshold for point correspondences.",
     )
     logger.add_logger_args(parser)
     args = parser.parse_args()
     logger.configure_logging(args)
 
-    input_mesh = trimesh.load(args.mesh)
+    input_mesh = trimesh.load(args.moving)
     if args.fixed is not None:
         args.fixed = trimesh.load(args.fixed)
     register(
         input_mesh, 
         args.fixed, 
-        args.savepath,
+        args.tf,
         args.output,
-        args.scale,
+        args.icp_scale,
+        args.icp_threshold,
     )

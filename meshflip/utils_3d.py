@@ -28,10 +28,15 @@ def trimesh2vedo(mesh, **kwargs):
 
 def vedo2trimesh(mesh):
     """ Convert a vedo mesh to a trimesh mesh """
-    return trimesh.Trimesh(
-        vertices=mesh.points(), 
-        faces=mesh.faces(),
-    )
+    try:
+        return trimesh.Trimesh(
+            vertices=mesh.points(), 
+            faces=mesh.faces(),
+        )
+    except AttributeError: 
+        return trimesh.Trimesh(
+            vertices=mesh.points(),
+        )
 
 
 def o3d2trimesh(pc):

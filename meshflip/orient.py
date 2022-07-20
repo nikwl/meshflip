@@ -33,7 +33,7 @@ def orienter(
     Instructions: Adjust the object to be in its canonical orientation.
     Click and drag to move the the object. Use the middle mouse button to translate the object.
     Press "d" to drop the object.
-    Press "s" to save the transformation to disk.
+    Press "s" to save.
     Press "n" to normalize the object.
     Press "q" to quit.
     """
@@ -78,6 +78,9 @@ def orienter(
     # Save this matrix for the reset button
     oriented_matrix = get_mat(mesh_moving.GetUserTransform())
 
+    plt.__prev_stable_mat = None
+    plt.__stable_mat_ptr = 0
+
     def keypress_callback(evt):
         """
         Keypress callback
@@ -111,12 +114,27 @@ def orienter(
                 logging.info("Model saved")
         
         elif evt["keyPressed"] == "d":
-            _, mat = utils_3d.trimesh_settle(
-                utils_3d.vedo2trimesh(mesh_moving),
-                ransac_threshold=0.01,
-                return_matrix=True,
-            )
+            if plt.__prev_stable_mat is not None:
+                if np.array_equal(plt.__prev_stable_mat, get_mat(mesh_moving.GetUserTransform())):
+                    plt.__stable_mat_ptr += 1
+                else:
+                    plt.__stable_mat_ptr = 0
+            # Get a stable pose
+            tfs, probs = utils_3d.vedo2trimesh(mesh_moving).compute_stable_poses()
+
+            plt.__stable_mat_ptr = plt.__stable_mat_ptr % len(tfs)
+            mat = tfs[plt.__stable_mat_ptr]
+
+            logging.info("Displaying stable pose {} of {} with prob {:2.3f}".format(
+                plt.__stable_mat_ptr, 
+                len(tfs), 
+                probs[plt.__stable_mat_ptr],
+            ))
+
             update_transform(mat)
+            plt.__prev_stable_mat = get_mat(mesh_moving.GetUserTransform())
+
+            # Force the plotter to redraw the window
             plt.window.Render()
 
     plt.addCallback("keyPressed", keypress_callback)

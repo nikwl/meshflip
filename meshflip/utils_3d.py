@@ -14,10 +14,16 @@ from sklearn.decomposition import PCA
 
 def trimesh2vedo(mesh, **kwargs):
     """ Convert a trimesh mesh to a vedo mesh """
-    return vedo.Mesh(
-        [mesh.vertices, mesh.faces], 
-        **kwargs
-    )
+    try:
+        return vedo.Mesh(
+            [mesh.vertices, mesh.faces], 
+            **kwargs
+        )
+    except AttributeError:
+        return vedo.Mesh(
+            [mesh.vertices, None], 
+            **kwargs
+        )
 
 
 def vedo2trimesh(mesh):

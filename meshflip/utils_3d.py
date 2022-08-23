@@ -74,6 +74,25 @@ def force_trimesh(mesh, remove_texture=False):
 
 # === trimesh methods === 
 
+
+def trimesh_simplify(mesh, num_faces):
+    """ Simplify a trimesh mesh using quadric decimation """
+
+    # Create triangle mesh
+    o3dm = o3d.geometry.TriangleMesh()
+    o3dm.vertices = o3d.utility.Vector3dVector(mesh.vertices)
+    o3dm.triangles = o3d.utility.Vector3iVector(mesh.faces)
+
+    # Apply quadratic decimation
+    smp = o3dm.simplify_quadric_decimation(target_number_of_triangles=num_faces)
+
+    # Return a trimesh
+    return trimesh.Trimesh(
+        np.array(smp.vertices),
+        np.array(smp.triangles),
+    )
+
+
 def trimesh_rotate(mesh, rotx=0, roty=0, rotz=0):
     """ Apply a sequence of rotations to a trimesh mesh """
     mesh = trimesh2vedo(mesh)

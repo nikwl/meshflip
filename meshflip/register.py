@@ -19,6 +19,20 @@ def get_mat(transform):
     return np.array([transform.GetMatrix().GetElement(i, j) for i in range(4) for j in range(4)]).reshape(4, 4)
 
 
+def trimesh2vedo(mesh, **kwargs):
+    """ Convert a trimesh mesh to a vedo mesh """
+    try:
+        return vedo.Mesh(
+            [mesh.vertices, mesh.faces], 
+            **kwargs
+        )
+    except AttributeError:
+        return vedo.Mesh(
+            [mesh.vertices, None], 
+            **kwargs
+        )
+    
+    
 def register(
     moving, 
     fixed=None, 
@@ -44,12 +58,12 @@ def register(
     input_mesh = utils_3d.force_trimesh(
         moving
     )
-    mesh_moving = utils_3d.trimesh2vedo(
+    mesh_moving = trimesh2vedo(
         input_mesh, 
-        c="r",
+        #c="r",
     )
-    if len(mesh_moving.faces()) == 0:
-        mesh_moving = vedo.pointcloud.Points(mesh_moving.points(), c="r")
+    #if len(mesh_moving.faces()) == 0:
+    #    mesh_moving = trimesh2vedo(mesh_moving.points(), c="r")
     plt.show(mesh_moving, interactive=False)
 
     if fixed is None:
@@ -62,14 +76,14 @@ def register(
             alpha=0.2
         )
     else:
-        mesh_fixed = utils_3d.trimesh2vedo(
+        mesh_fixed = trimesh2vedo(
             utils_3d.force_trimesh(
                 fixed
             ), 
-            c="b",
+            #c="b",
         )
-        if len(mesh_fixed.faces()) == 0:
-            mesh_fixed = vedo.pointcloud.Points(mesh_fixed.points(), c="b")
+        #if len(mesh_fixed.faces()) == 0:
+        #    mesh_fixed = vedo.pointcloud.Points(mesh_fixed.points(), c="b")
     plt.show(mesh_fixed, interactive=False)
 
     # Set a starting identity transform

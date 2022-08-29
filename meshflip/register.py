@@ -36,6 +36,7 @@ def register(
     Press "a" to toggle between moving the object or moving the camera.
     press "r" to register the objects using ICP.
     Press "s" to save the transformation to disk.
+    Press "e" to reset the fixed mesh (if you moved it by accident).
     Press "q" to exit.
     """
 
@@ -118,6 +119,10 @@ def register(
                     scale=icp_scale,
                 )
             )
+        elif evt["keyPressed"] == "e":
+            transform = vtk.vtkTransform()
+            transform.SetMatrix(np.eye(4).flatten())
+            mesh_fixed.SetUserTransform(transform)
         elif evt["keyPressed"] == "s":
             if tf is not None:
                 matrix = get_mat(mesh_moving.GetUserTransform())

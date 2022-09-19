@@ -1,6 +1,9 @@
 import logging
 
 
+LOG = logging.getLogger("meshflip")
+
+
 def add_logger_args(arg_parser):
     arg_parser.add_argument(
         "--debug",
@@ -26,17 +29,13 @@ def add_logger_args(arg_parser):
 
 
 def configure_logging(args):
-    logger = logging.getLogger()
     if args.debug:
-        logger.setLevel(logging.DEBUG)
+        LOG.setLevel(logging.DEBUG)
     elif args.quiet:
-        logger.setLevel(logging.WARNING)
+        LOG.setLevel(logging.WARNING)
     else:
-        logger.setLevel(logging.INFO)
-    logger_handler = logging.StreamHandler()
+        LOG.setLevel(logging.INFO)
 
-    # Dont add two handlers
-    logger.addHandler(logger_handler)
-    # if args.logfile is not None:
-    #     file_logger_handler = logging.FileHandler(args.logfile)
-    #     logger.addHandler(file_logger_handler)
+    if args.logfile is not None:
+        file_logger_handler = logging.FileHandler(args.logfile)
+        LOG.addHandler(file_logger_handler)

@@ -3,3 +3,4 @@ vedo>=2022.2.3
 pyransac3d>=0.6.0
 open3d>=0.11.1
 scikit-learn>=1.1.2
+networkx>=2.8.6

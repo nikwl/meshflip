@@ -4,6 +4,7 @@ import logging
 import trimesh
 import pymeshfix
 
+from meshflip.logger import LOG
 import meshflip.logger as logger
 
 
@@ -15,9 +16,7 @@ def repair_watertight(mesh):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description=""
-    )
+    parser = argparse.ArgumentParser(description="")
     parser.add_argument(
         "mesh",
         help="3D object to orient.",
@@ -31,7 +30,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     logger.configure_logging(args)
 
-    logging.debug("Loading mesh from: {}".format(args.mesh))
+    LOG.debug("Loading mesh from: {}".format(args.mesh))
     input_mesh = trimesh.load(args.mesh)
     repair_watertight(
         input_mesh,

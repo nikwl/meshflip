@@ -150,22 +150,12 @@ def trimesh_transform(mesh, R, T, inverse=False):
 
 def trimesh_normalize(mesh, scale=False):
     """Normalize a mesh so that it occupies a unit cube"""
-
-    # Get the overall size of the object
     mesh = mesh.copy()
-    mesh_min, mesh_max = np.min(mesh.vertices, axis=0), np.max(mesh.vertices, axis=0)
-    size = mesh_max - mesh_min
-
-    # Center the object
-    mesh.vertices = mesh.vertices - ((size / 2.0) + mesh_min)
-
-    # Normalize scale of the object
-    if scale:
-        mesh.vertices = mesh.vertices * (1.0 / np.max(size))
+    mesh.apply_transform(trimesh_normalize_matrix(mesh, scale=scale))
     return mesh
 
 
-def trimesh_normalize_matrix(mesh):
+def trimesh_normalize_matrix(mesh, scale=False):
     """Normalize a mesh so that it occupies a unit cube"""
 
     # Get the overall size of the object
@@ -178,7 +168,8 @@ def trimesh_normalize_matrix(mesh):
     trans = trimesh.transformations.translation_matrix(-((size / 2.0) + mesh_min))
 
     # Normalize scale of the object
-    scale = trimesh.transformations.scale_matrix((1.0 / np.max(size)))
+    if scale:
+        scale = trimesh.transformations.scale_matrix((1.0 / np.max(size)))
     return scale @ trans
 
 

@@ -165,12 +165,13 @@ def trimesh_normalize_matrix(mesh, scale=False):
     # Center the object
     mesh.vertices = (size / 2.0) + mesh_min
 
-    trans = trimesh.transformations.translation_matrix(-((size / 2.0) + mesh_min))
+    trans_mat = trimesh.transformations.translation_matrix(-((size / 2.0) + mesh_min))
 
     # Normalize scale of the object
+    scale_mat = np.eye(4)
     if scale:
-        scale = trimesh.transformations.scale_matrix((1.0 / np.max(size)))
-    return scale @ trans
+        scale_mat = trimesh.transformations.scale_matrix((1.0 / np.max(size)))
+    return scale_mat @ trans_mat
 
 
 def trimesh_settle(

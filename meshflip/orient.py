@@ -96,6 +96,7 @@ def orienter(
 
     # Save this matrix for the reset button
     oriented_matrix = get_mat(mesh_moving.GetUserTransform())
+    LOG.info("Loaded object successfully")
 
     plt.__prev_stable_mat = None
     plt.__stable_mat_ptr = 0
@@ -110,6 +111,7 @@ def orienter(
             transform.SetMatrix(oriented_matrix.flatten())
             mesh_moving.SetUserTransform(transform)
             plt.window.Render()
+            LOG.info("Object reset successfully")
 
         elif evt["keyPressed"] == "c":
             LOG.info("Correcting static transforms ...")
@@ -118,25 +120,33 @@ def orienter(
             for m in meshes_static:
                 m.SetUserTransform(transform)
             plt.window.Render()
+            LOG.info("Objects corrected successfully")
 
         elif evt["keyPressed"] == "n":
-            LOG.info("Normalizing ...")
+            LOG.info("Normalizing object...")
             update_transform(
-                utils_3d.trimesh_normalize_matrix(utils_3d.vedo2trimesh(mesh_moving))
+                utils_3d.trimesh_normalize_matrix(
+                    utils_3d.vedo2trimesh(mesh_moving), scale=True
+                )
             )
+            LOG.info("Object normalized successfully")
 
         elif evt["keyPressed"] == "s":
             # If normalize and center were passed we need to rerun these
             if normalize:
+                LOG.info("Normalizing object ...")
                 update_transform(
                     utils_3d.trimesh_normalize_matrix(
                         utils_3d.vedo2trimesh(mesh_moving), scale=True
                     )
                 )
             if center:
+                LOG.info("Centering object ...")
                 update_transform(
                     utils_3d.trimesh_normalize_matrix(utils_3d.vedo2trimesh(mesh_moving))
                 )
+            # Force the plotter to redraw the window
+            plt.window.Render()
                 
             if tf is not None:
                 matrix = get_mat(mesh_moving.GetUserTransform())
@@ -144,15 +154,16 @@ def orienter(
                 LOG.debug(matrix)
                 LOG.debug("Saving transform to: {}".format(tf))
                 utils_3d.save_transform(tf, matrix)
-                LOG.info("Transform saved")
+                LOG.info("Transform saved successfully")
             if output is not None:
                 LOG.debug("Saving mesh to: {}".format(output))
                 utils_3d.trimesh_transform_matrix(
                     input_mesh, get_mat(mesh_moving.GetUserTransform())
                 ).export(output)
-                LOG.info("Model saved")
+                LOG.info("Model saved successfully")
 
         elif evt["keyPressed"] == "d":
+            LOG.info("Dropping object ...")
             if plt.__prev_stable_mat is not None:
                 if np.array_equal(
                     plt.__prev_stable_mat, get_mat(mesh_moving.GetUserTransform())
@@ -179,6 +190,7 @@ def orienter(
 
             # Force the plotter to redraw the window
             plt.window.Render()
+            LOG.info("Model dropped successfully")
 
     plt.addCallback("keyPressed", keypress_callback)
 

@@ -126,6 +126,18 @@ def orienter(
             )
 
         elif evt["keyPressed"] == "s":
+            # If normalize and center were passed we need to rerun these
+            if normalize:
+                update_transform(
+                    utils_3d.trimesh_normalize_matrix(
+                        utils_3d.vedo2trimesh(mesh_moving), scale=True
+                    )
+                )
+            if center:
+                update_transform(
+                    utils_3d.trimesh_normalize_matrix(utils_3d.vedo2trimesh(mesh_moving))
+                )
+                
             if tf is not None:
                 matrix = get_mat(mesh_moving.GetUserTransform())
                 LOG.debug("The optimal transformation matrix is:")
@@ -227,6 +239,18 @@ def orienter(
     plt.show(interactive=True).close()
 
     if output is not None:
+        # If normalize and center were passed we need to rerun these
+        if normalize:
+            update_transform(
+                utils_3d.trimesh_normalize_matrix(
+                    utils_3d.vedo2trimesh(mesh_moving), scale=True
+                )
+            )
+        if center:
+            update_transform(
+                utils_3d.trimesh_normalize_matrix(utils_3d.vedo2trimesh(mesh_moving))
+            )
+            
         if tf is not None:
             matrix = get_mat(mesh_moving.GetUserTransform())
             LOG.debug("The optimal transformation matrix is:")

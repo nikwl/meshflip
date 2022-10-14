@@ -130,6 +130,12 @@ def orienter(
                 )
             )
             LOG.info("Object normalized successfully")
+            if center:
+                LOG.info("Centering object ...")
+                update_transform(
+                    utils_3d.trimesh_normalize_matrix(utils_3d.vedo2trimesh(mesh_moving))
+                )
+                LOG.info("Object centered successfully")
 
         elif evt["keyPressed"] == "s":
             # If normalize and center were passed we need to rerun these
@@ -145,6 +151,7 @@ def orienter(
                 update_transform(
                     utils_3d.trimesh_normalize_matrix(utils_3d.vedo2trimesh(mesh_moving))
                 )
+                LOG.info("Object centered successfully")
             # Force the plotter to redraw the window
             plt.window.Render()
                 

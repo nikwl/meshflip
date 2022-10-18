@@ -29,6 +29,7 @@ def orienter(
     pca=False,
     center=False,
     normalize=False,
+    pre_tf=None,
 ):
 
     # Instantiate the plotter
@@ -75,6 +76,8 @@ def orienter(
         transform.SetMatrix(mat.flatten())
         mesh_moving.SetUserTransform(transform)
 
+    if pre_tf is not None:
+        update_transform(pre_tf)
     if normalize:
         update_transform(
             utils_3d.trimesh_normalize_matrix(

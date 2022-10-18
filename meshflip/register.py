@@ -56,7 +56,7 @@ def register(
     input_mesh = utils_3d.force_trimesh(moving)
     mesh_moving = trimesh2vedo(
         input_mesh,
-        # c="r",
+        c="r",
     )
     # if len(mesh_moving.faces()) == 0:
     #    mesh_moving = trimesh2vedo(mesh_moving.points(), c="r")

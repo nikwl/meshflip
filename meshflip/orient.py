@@ -48,7 +48,7 @@ def orienter(
     """
 
     # Load
-    mesh_moving = utils_3d.trimesh2vedo(utils_3d.force_trimesh(input_mesh))
+    mesh_moving = utils_3d.trimesh2vedo(utils_3d.force_trimesh(input_mesh), c="r")
     meshes_static = []
     if static is not None:
         meshes_static = [

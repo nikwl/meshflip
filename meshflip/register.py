@@ -31,7 +31,13 @@ def trimesh2vedo(mesh, **kwargs):
 
 
 def register(
-    moving, fixed=None, tf=None, output=None, icp_threshold=75, icp_scale=False
+    moving, 
+    fixed=None, 
+    tf=None, 
+    output=None, 
+    icp_threshold=75, 
+    icp_scale=False, 
+    pre_tf=None,
 ):
 
     # Instantiate the plotter
@@ -90,6 +96,8 @@ def register(
         mesh_moving.SetUserTransform(transform)
 
     update_transform(np.eye(4))
+    if pre_tf is not None:
+        update_transform(pre_tf)
 
     def scale(widget, event):
         scale = widget.GetRepresentation().GetValue()
